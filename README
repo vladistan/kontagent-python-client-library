@@ -2,6 +2,13 @@
 
 Please see help(kontagent) for documentation.
 
+For generic use of the Kontagent Analytics API, the AnalyticsInterface
+class is what you need to use.
+
+Please see:
+http://developers.kontagent.com/reference/api-documentation/facebook-rest-server-api
+for detailed information on the parameters needed for each call to the API.
+
 == Django ==
 
 If you are using Django, the middleware is:
@@ -9,13 +16,23 @@ If you are using Django, the middleware is:
 
 You need these settings in your settings.py:
 
-FACEBOOK_API_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
-FACEBOOK_SECRET_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
 FACEBOOK_APP_NAME = "yourapp"
-FACEBOOK_INTERNAL = True
 FACEBOOK_CALLBACK_HOST = "http://your-server.ca:10000"
 FACEBOOK_CALLBACK_PATH = "/fb/canvas/"
-
 KONTAGENT_API_SERVER = "api.test.kontagent.net"
 KONTAGENT_API_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+FACEBOOK_CALLBACK_HOST + FACEBOOK_CALLBACK_PATH should be the
+same as what you entered as your app's callback in the facebook
+developers app.
+
+FACEBOOK_APP_NAME should be what you entered as your app name.
+
+If you are using pyfacebook, include the Kontagent middleware before
+the pyfacebook middleware (pyfacebook may redirect in certain casses
+and strip necessary tracking parameters from the URL).
+
+
+
+
 
