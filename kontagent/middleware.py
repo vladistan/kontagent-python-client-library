@@ -42,7 +42,14 @@ def facebook_redirect(url):
 
 
 class KontagentMiddleware:
-    """ This is django compatible middleware. """
+    """ This is django compatible middleware.
+
+    This does not depend on pyfacebook, however, if you are using pyFacebook,
+    include this middleware before the  pyfacebook middleware.
+
+    Note: currently facebook signature checking is not done.
+
+    """
 
     def __init__(self, auto_redirect=True):
         """ Initializer for Kontagent Django middleware.
@@ -59,7 +66,6 @@ class KontagentMiddleware:
                                                       settings.KONTAGENT_API_KEY)
 
 
-    # NOTE: Facebook sig checking not implemented yet
     def process_request(self, request):
         # Check for app removal
         if 'fb_sig_uninstall' in request.POST and get_uid(request) is not None:
