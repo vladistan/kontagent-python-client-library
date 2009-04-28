@@ -1,4 +1,45 @@
+from kontagent import AnalyticsInterface, strip_params
 from django.http import HttpResponse
+from django.conf import settings
+
+
+def callback_to_facebook(url):
+    """ Changes a URL that points directly to your callback to a URL that points to facebook
+    
+    Ex. http://caseybanner.ca:10000/fb/canvas/some_page/?foo=bar changes to:
+    http://apps.facebook.com/my_app/some_page/?foo=bar
+    
+    Keyword arguments:
+    url -- the URL to convert
+    """
+    return url.replace(settings.FACEBOOK_CALLBACK_HOST + settings.FACEBOOK_CALLBACK_PATH,
+                       "http://apps.facebook.com/%s/" % settings.FACEBOOK_APP_NAME)
+
+def get_kt_params(request):    
+    tracking = request.GET.get('kt_ut', None)
+    template = request.GET.get('kt_t', None)
+    subtype1 = request.GET.get('kt_st1', None)
+    subtype2 = request.GET.get('kt_st2', None)
+    subtype3 = request.GET.get('kt_st3', None)
+
+    return {'u' : tracking,
+            't' : template,
+            'st1' : subtype1,
+            'st2' : subtype2,
+            'st3' : subtype3}
+
+def get_uid(request):
+    uid = None
+    if 'fb_sig_canvas_user' in request.POST:
+        uid = request.POST['fb_sig_canvas_user']
+    elif 'fb_sig_user' in request.POST:
+        uid = request.POST['fb_sig_user']
+    return uid
+    
+def facebook_redirect(url):
+    response = HttpResponse("<fb:redirect url=\"%s\"/>" % url)
+    return response
+
 
 class KontagentMiddleware:
     """ This is django compatible middleware. """
@@ -13,48 +54,23 @@ class KontagentMiddleware:
                          don't get sent twice if a user refreshes the page
                          after following a link with kontagent params.
         """
-        from django.conf import settings
         self.redirect = auto_redirect
         self.analytics_interface = AnalyticsInterface(settings.KONTAGENT_API_SERVER,
                                                       settings.KONTAGENT_API_KEY)
 
-    def get_kt_params(self, request):    
-        tracking = request.GET.get('kt_ut', None)
-        template = request.GET.get('kt_t', None)
-        subtype1 = request.GET.get('kt_st1', None)
-        subtype2 = request.GET.get('kt_st2', None)
-        subtype3 = request.GET.get('kt_st3', None)
-
-        return {'u' : tracking,
-                't' : template,
-                'st1' : subtype1,
-                'st2' : subtype2,
-                'st3' : subtype3}
-
-    def get_uid(self, request):
-        uid = None
-        if 'fb_sig_canvas_user' in request.POST:
-            uid = request.POST['fb_sig_canvas_user']
-        elif 'fb_sig_user' in request.POST:
-            uid = request.POST['fb_sig_user']
-        return uid
-    
-    def facebook_redirect(self, url):
-        response = HttpResponse("<fb:redirect url=\"%s\"/>" % url)
-        return response
 
     # NOTE: Facebook sig checking not implemented yet
     def process_request(self, request):
         # Check for app removal
-        if 'fb_sig_uninstall' in request.POST and self.get_uid(request) is not None:
+        if 'fb_sig_uninstall' in request.POST and get_uid(request) is not None:
             if request.POST['fb_sig_uninstall'] == '1':
-                self.analytics_interface.application_removed(self.get_uid(request)).thread_send()
+                self.analytics_interface.application_removed(get_uid(request)).thread_send()
 
         # Check for app added
         if 'installed' in request.GET and request.GET['installed'] == '1' \
                and 'kt_ut' in request.GET \
-               and self.get_uid(request) is not None:
-            kt_params = self.get_kt_params(request)
+               and get_uid(request) is not None:
+            kt_params = get_kt_params(request)
             self.analytics_interface.application_added(uid=request.POST['fb_sig_user'],
                                                        trackingTag=kt_params['u']).thread_send()
 
@@ -65,8 +81,8 @@ class KontagentMiddleware:
             if kt_type == "nt":
                 if 'kt_ut' in request.GET and 'installed' not in request.GET:
                     installed = request.POST.get('fb_sig_added', False)
-                    kt_params = self.get_kt_params(request)
-                    uid = self.get_uid(request)
+                    kt_params = get_kt_params(request)
+                    uid = get_uid(request)
                         
                     self.analytics_interface.notification_response(installed=installed,
                                                                    recipient_id=uid,
@@ -77,15 +93,15 @@ class KontagentMiddleware:
                                                                    subtype_3=kt_params['st3']).thread_send()
                     
                     if self.redirect:
-                        self.facebook_redirect(request.get_full_path())    
+                        return facebook_redirect(callback_to_facebook(strip_params(request.build_absolute_uri())))
                     
             # Invite sent
             elif kt_type == "ins":
                 if 'fb_sig_user' in request.POST \
                        and 'ids[]' in request.POST and 'kt_ut' in request.GET:
-                    uid = self.get_uid(request)
+                    uid = get_uid(request)
                     uids = request.POST.getlist('ids[]')
-                    kt_params = self.get_kt_params(request)
+                    kt_params = get_kt_params(request)
 
                     self.analytics_interface.invite_sent(uid=uid,
                                                          recipients=uids,
@@ -99,8 +115,8 @@ class KontagentMiddleware:
             elif kt_type == "in":
                 if 'kt_ut' in request.GET and 'fb_sig_added' in request.POST and 'installed' not in request.GET:
                     installed = request.POST.get('fb_sig_added', False)
-                    kt_params = self.get_kt_params(request)
-                    uid = self.get_uid(request)
+                    kt_params = get_kt_params(request)
+                    uid = get_uid(request)
 
                     self.analytics_interface.invite_response(installed=installed,
                                                              tracking_tag=kt_params['u'],
@@ -110,14 +126,14 @@ class KontagentMiddleware:
                                                              subtype_2=kt_params['st2'],
                                                              subtype_3=kt_params['st3']).thread_send()
                     if self.redirect:
-                        self.facebook_redirect(request.get_full_path())
+                        return facebook_redirect(callback_to_facebook(strip_params(request.build_absolute_uri())))
 
             # Email click
             elif kt_type == "nte":
                 if 'kt_ut' in request.GET and 'fb_sig_added' in request.POST:
                     installed = request.POST.get('fb_sig_added', False)
-                    kt_params = self.get_kt_params(request)
-                    uid = self.get_uid(request)
+                    kt_params = get_kt_params(request)
+                    uid = get_uid(request)
                     
                     self.analytics_interface.email_response(installed=installed,
                                                             tracking_tag=kt_params['u'],
@@ -126,7 +142,7 @@ class KontagentMiddleware:
                                                             subtype_2=kt_params['st2'],
                                                             subtype_3=kt_params['st3']).thread_send()
                     if self.redirect:
-                        self.facebook_redirect(request.get_full_path())
+                        return facebook_redirect(callback_to_facebook(strip_params(request.build_absolute_uri())))
              
             # UCC
             elif kt_type == "fdp" or \
@@ -136,8 +152,8 @@ class KontagentMiddleware:
                    kt_type == "partner" or \
                    kt_type == "profile":
                 installed = request.POST.get('fb_sig_added', False)
-                kt_params = self.get_kt_params(request)
-                uid = self.get_uid(request)
+                kt_params = get_kt_params(request)
+                uid = get_uid(request)
                 short_tag = generate_short_tag()
 
                 self.analytics_interface.ucc(uid=uid,
@@ -148,5 +164,5 @@ class KontagentMiddleware:
                                              subtype_2=kt_params['st2'],
                                              subtype_3=kt_params['st3']).thread_send()
                 if self.redirect:
-                    self.facebook_redirect(request.get_full_path())
+                    return facebook_redirect(callback_to_facebook(strip_params(request.build_absolute_uri())))
         
