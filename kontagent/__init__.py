@@ -19,7 +19,7 @@ class AnalyticsQuery:
         Keyword arguments:
         query_string -- query string in the form /api/<version number>/<apikey>/<message type>/?<key>=<data>&<keyn>=<datan>
         api_server -- api server that this message will be sent to when send() or thread_send() is called.
-                      eg. 'api.test.kontagent.net'
+                      eg. 'api.geo.kontagent.net'
         query_type -- optional argument containing the type of the query, eg. 'ins'.
                       This is useful when you need to identify the type of a query
                       without having to parse the query string.
@@ -62,7 +62,7 @@ class AnalyticsInterface:
     of AnalyticsQuery objects.
 
     Usage:
-     analytics_interface = AnalyticsInterface('api.test.kontagent.net')
+     analytics_interface = AnalyticsInterface('test-server.kontagent.com')
 
     """
     
@@ -233,7 +233,7 @@ def construct_query(api_key, api_server, api_version, msg_type, parameters):
     
     Keyword arguments:
     apikey --  Kontagent API key
-    api_server -- Kontagent API server, eg. api.test.kontagent.net
+    api_server -- Kontagent API server, eg. api.geo.kontagent.net
     api_version -- <version number>
     msg_type --  <message type>, eg. 'ins', 'apa', etc.
     parameters --  a dictionary containing the variables in the call

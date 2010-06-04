@@ -19,7 +19,7 @@ You need these settings in your settings.py:
 FACEBOOK_APP_NAME = "yourapp"
 FACEBOOK_CALLBACK_HOST = "http://your-server.ca:10000"
 FACEBOOK_CALLBACK_PATH = "/fb/canvas/"
-KONTAGENT_API_SERVER = "api.test.kontagent.net"
+KONTAGENT_API_SERVER = "test-server.kontagent.com"
 KONTAGENT_API_KEY = "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 FACEBOOK_CALLBACK_HOST + FACEBOOK_CALLBACK_PATH should be the
