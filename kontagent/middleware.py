@@ -34,6 +34,10 @@ def get_uid(request):
         uid = request.POST['fb_sig_canvas_user']
     elif 'fb_sig_user' in request.POST:
         uid = request.POST['fb_sig_user']
+    elif 'fb_sig_user' in request.GET:
+        uid = request.GET['fb_sig_user']
+    elif 'fb_sig_user' in request.GET:
+        uid = request.GET['fb_sig_user']
     return uid
     
 def facebook_redirect(url):
@@ -73,11 +77,11 @@ class KontagentMiddleware:
                 self.analytics_interface.application_removed(get_uid(request)).thread_send()
 
         # Check for app added
+        #and 'kt_ut' in request.GET \
         if 'installed' in request.GET and request.GET['installed'] == '1' \
-               and 'kt_ut' in request.GET \
                and get_uid(request) is not None:
             kt_params = get_kt_params(request)
-            self.analytics_interface.application_added(uid=request.POST['fb_sig_user'],
+            self.analytics_interface.application_added(uid=get_uid(request),
                                                        trackingTag=kt_params['u']).thread_send()
 
         # Process tracking params
@@ -86,7 +90,7 @@ class KontagentMiddleware:
             # Notification Click
             if kt_type == "nt":
                 if 'kt_ut' in request.GET and 'installed' not in request.GET:
-                    installed = request.POST.get('fb_sig_added', False)
+                    installed = request.GET.get('fb_sig_added', False)
                     kt_params = get_kt_params(request)
                     uid = get_uid(request)
                         

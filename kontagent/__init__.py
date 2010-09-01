@@ -3,9 +3,7 @@
 import random
 import urllib
 import httplib
-import datetime
 import threading
-import simplejson
 from urlparse import urlparse, urlunparse
 
 DIRECTED_VAL = 'd'
@@ -220,8 +218,7 @@ class AnalyticsInterface:
     
     def goal_count(self, uid, gc_num, gc_value):
         """Generates a Goal Count (gci) Analytics REST API call."""
-        params = {"s":uid}
-        params["gc%d" % gc_num] = gc_value
+        params = {"s":uid, "gc%d" % gc_num: gc_value}
 
         return self.construct_query("gci", params)
 
